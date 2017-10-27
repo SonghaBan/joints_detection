@@ -268,4 +268,18 @@ class cyclegan(object):
                 index.write("</tr>")
             index.close()
         else:
+            for sample in sample_files:
+                sample = sample.reshape(2,24).T
+                fake_img = self.sess.run(out_var, feed_dict={in_var: sample})
+                save_images(fake_img, [1, 1], image_path)
+                index.write("<td>%s</td>" % os.path.basename(image_path))
+                index.write("<td><img src='%s'></td>" % (sample_file if os.path.isabs(sample_file) else (
+                    '..' + os.path.sep + sample_file)))
+                index.write("<td><img src='%s'></td>" % (image_path if os.path.isabs(image_path) else (
+                    '..' + os.path.sep + image_path)))
+                index.write("</tr>")
+            index.close()
+                #also need to change shape of the load_train
+                #save images and csv in test phase
+                #for samples during the training, save points on the image
 
