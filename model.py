@@ -5,6 +5,7 @@ from glob import glob
 import tensorflow as tf
 import numpy as np
 from collections import namedtuple
+import csv
 
 from module import *
 from utils import *
@@ -250,36 +251,38 @@ class cyclegan(object):
         out_var, in_var = (self.testB, self.test_A) if args.which_direction == 'AtoB' else (
             self.testA, self.test_B)
 
-        if status == 0:
+        if status == 0: 
             fake_joints = []
             for sample_file in sample_files:
                 print('Processing image: ' + sample_file)
                 sample_image = [load_test_data(sample_file, args.fine_size)]
                 sample_image = np.array(sample_image).astype(np.float32)
-                image_path = os.path.join(args.test_dir,
-                                          '{0}_{1}'.format(args.which_direction, os.path.basename(sample_file)))
+                
                 fake_img = self.sess.run(out_var, feed_dict={in_var: sample_image})
-                save_images(fake_img, [1, 1], image_path)
+                fake_joints.append(fake_img.flatten())
                 index.write("<td>%s</td>" % os.path.basename(image_path))
                 index.write("<td><img src='%s'></td>" % (sample_file if os.path.isabs(sample_file) else (
                     '..' + os.path.sep + sample_file)))
-                index.write("<td><img src='%s'></td>" % (image_path if os.path.isabs(image_path) else (
-                    '..' + os.path.sep + image_path)))
+                index.write("<td>'%s'</td>" % (" ".join(str(elm) for elm in myOtherList)))
                 index.write("</tr>")
             index.close()
+            file_path = os.path.join(args.test_dir, '{}.csv'.format(args.which_direction))
+            with open(file_path, 'w') as outfile:
+                writer = csv.writer(outfile, lineterminator='\n')
+                writer.writerows(fake_joints)
         else:
-            for sample in sample_files:
+            for i, sample in enumerate(sample_files):
                 sample = sample.reshape(2,24).T
+                image_path = os.path.join(args.test_dir,
+                                          '{0}_{1}.jpg'.format(args.which_direction, str(i)))
                 fake_img = self.sess.run(out_var, feed_dict={in_var: sample})
                 save_images(fake_img, [1, 1], image_path)
-                index.write("<td>%s</td>" % os.path.basename(image_path))
-                index.write("<td><img src='%s'></td>" % (sample_file if os.path.isabs(sample_file) else (
-                    '..' + os.path.sep + sample_file)))
+                index.write("<td>%s</td>" % str(i))
+                index.write("<td>'%s'</td>" % (" ".join(str(elm) for elm in myOtherList)))
                 index.write("<td><img src='%s'></td>" % (image_path if os.path.isabs(image_path) else (
                     '..' + os.path.sep + image_path)))
                 index.write("</tr>")
             index.close()
-                #also need to change shape of the load_train
                 #save images and csv in test phase
                 #for samples during the training, save points on the image
 
