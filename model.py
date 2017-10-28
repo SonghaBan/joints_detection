@@ -16,6 +16,7 @@ class cyclegan(object):
         self.sess = sess
         self.batch_size = args.batch_size
         self.image_size = args.fine_size
+        self.out_size = args.out_size
         self.input_c_dim = args.input_nc
         self.output_c_dim = args.output_nc
         self.L1_lambda = args.L1_lambda
@@ -31,8 +32,7 @@ class cyclegan(object):
         else:
             self.criterionGAN = sce_criterion
 
-        OPTIONS = namedtuple('OPTIONS', 'batch_size image_size \
-                              gf_dim df_dim output_c_dim is_training')
+        OPTIONS = namedtuple('OPTIONS', 'batch_size image_size gf_dim df_dim output_c_dim is_training')
         self.options = OPTIONS._make((args.batch_size, args.fine_size,
                                       args.ngf, args.ndf, args.output_nc,
                                       args.phase == 'train'))
@@ -44,7 +44,7 @@ class cyclegan(object):
     def _build_model(self):
 
         self.real_A = tf.placeholder(tf.float32,[None, self.image_size, self.image_size, self.input_c_dim],name='real_A_images')
-        self.real_B = tf.placeholder(tf.float32,[None, 24, 2],name='real_B_joints')
+        self.real_B = tf.placeholder(tf.float32,[None, self.out_size, self.output_c_dim],name='real_B_joints')
 
         self.fake_B = self.generator(self.real_A, self.options, False, name="generatorA2B")
         self.fake_A_ = self.generator(self.fake_B, self.options, False, name="generatorB2A")
@@ -272,7 +272,7 @@ class cyclegan(object):
                 writer.writerows(fake_joints)
         else:
             for i, sample in enumerate(sample_files):
-                sample = sample.reshape(2,24).T
+                sample = sample.reshape(self.output_c_dim, self.out_size).T
                 image_path = os.path.join(args.test_dir,
                                           '{0}_{1}.jpg'.format(args.which_direction, str(i)))
                 fake_img = self.sess.run(out_var, feed_dict={in_var: sample})

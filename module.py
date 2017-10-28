@@ -25,6 +25,77 @@ def discriminator(image, options, reuse=False, name="discriminator"):
         # h4 is (32 x 32 x 1)
         return h4
 
+def generator_a2b(image, options, reuse=False, name="generatorB"):
+    dropout_rate = 0.5 if options.is_training else 1.0
+    with tf.variable_scope(name):
+        if reuse:
+            tf.get_variable_scope().reuse_variables()
+        else:
+            assert tf.get_variable_scope().reuse is False
+
+        def residule_block(x, dim, ks=3, s=1, name='res'):
+            p = int((ks - 1) / 2)
+            y = tf.pad(x, [[0, 0], [p, p], [p, p], [0, 0]], "REFLECT")
+            y = instance_norm(conv2d(y, dim, ks, s, padding='VALID', name=name+'_c1'), name+'_bn1')
+            y = tf.pad(tf.nn.relu(y), [[0, 0], [p, p], [p, p], [0, 0]], "REFLECT")
+            y = instance_norm(conv2d(y, dim, ks, s, padding='VALID', name=name+'_c2'), name+'_bn2')
+            return y + x
+
+        # input (256, 256, 3)
+        e1 = instance_norm(conv2d(image, options.gf_dim, name='g_e1_conv'))
+        # e1 is (128 x 128 x self.gf_dim)
+        e2 = instance_norm(conv2d(lrelu(e1), options.gf_dim*2, name='g_e2_conv'), 'g_bn_e2')
+        # e2 is (64 x 64 x self.gf_dim*2)
+        e3 = instance_norm(conv2d(lrelu(e2), options.gf_dim*4, name='g_e3_conv'), 'g_bn_e3')
+        # e3 is (32 x 32 x self.gf_dim*4)
+        
+
+
+        e4 = instance_norm(conv2d(lrelu(e3), options.gf_dim*8, name='g_e4_conv'), 'g_bn_e4')
+        # e4 is (16 x 16 x self.gf_dim*8)
+        e5 = instance_norm(conv2d(lrelu(e4), options.gf_dim*8, name='g_e5_conv'), 'g_bn_e5')
+        # e5 is (8 x 8 x self.gf_dim*8)
+        e6 = instance_norm(conv2d(lrelu(e5), options.gf_dim*8, name='g_e6_conv'), 'g_bn_e6')
+        # e6 is (4 x 4 x self.gf_dim*8)
+        e7 = instance_norm(conv2d(lrelu(e6), options.gf_dim*8, name='g_e7_conv'), 'g_bn_e7')
+        # e7 is (2 x 2 x self.gf_dim*8)
+        e8 = instance_norm(conv2d(lrelu(e7), options.gf_dim*8, name='g_e8_conv'), 'g_bn_e8')
+        # e8 is (1 x 1 x self.gf_dim*8) 512
+
+        d1 = deconv2d(tf.nn.relu(e8), options.gf_dim*8, name='g_d1')
+        d1 = tf.nn.dropout(d1, dropout_rate)
+        d1 = tf.concat([instance_norm(d1, 'g_bn_d1'), e7], 3)
+        # d1 is (2 x 2 x self.gf_dim*8*2)
+        d2 = deconv2d(tf.nn.relu(d1), options.gf_dim*8, name='g_d2')
+        d2 = tf.nn.dropout(d2, dropout_rate)
+        d2 = tf.concat([instance_norm(d2, 'g_bn_d2'), e6], 3)
+        # d2 is (4 x 4 x self.gf_dim*8*2)
+        d3 = deconv2d(tf.nn.relu(d2), options.gf_dim, ks=2, s=1, padding='VALID', name='g_d3')
+        d3 = tf.nn.dropout(d3, dropout_rate)
+        # (5 x 5 x 64)
+        d4 = conv2d(d3, 2, s=1, name='g_pred')
+        # (5 x 5 x 2)
+        return d4
+
+def generator_b2a(image, options, reuse=False, name="generatorA"):
+    dropout_rate = 0.5 if options.is_training else 1.0
+    with tf.variable_scope(name):
+        if reuse:
+            tf.get_variable_scope().reuse_variables()
+        else:
+            assert tf.get_variable_scope().reuse is False
+
+        #input (5,5,2)
+        e1 = conv2d(image, options.gf_dim, ks=2, s=1, name='gba_e1')
+        # (5,5,64)
+        e2 = instance_norm(conv2d(lrelu(e1),options.gf_dim*2,ks=2,s=1,padding='VALID',name='gba_e2'))
+        # (4, 4, gf_dim*2)
+        e3 = deconv2d(tf.nn.relu(e2), options.gf_dim*4, name='gba_e3')
+        # (8, 8, gf_dim*4)
+        e4 = deconv2d(tf.nn.relu(e3), options.gf_dim*8,name='gba_e4')
+        e4 = tf.nn.dropout(e4, dropout_rate)
+
+
 
 def generator_unet(image, options, reuse=False, name="generator"):
 
@@ -53,6 +124,7 @@ def generator_unet(image, options, reuse=False, name="generator"):
         # e7 is (2 x 2 x self.gf_dim*8)
         e8 = instance_norm(conv2d(lrelu(e7), options.gf_dim*8, name='g_e8_conv'), 'g_bn_e8')
         # e8 is (1 x 1 x self.gf_dim*8)
+        
 
         d1 = deconv2d(tf.nn.relu(e8), options.gf_dim*8, name='g_d1')
         d1 = tf.nn.dropout(d1, dropout_rate)
