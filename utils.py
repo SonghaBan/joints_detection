@@ -46,7 +46,7 @@ def load_test_data(image_path, fine_size=256):
 
 def load_train_data(image_path, load_size=286, fine_size=256, is_testing=False):
     img_A = imread(image_path[0])
-    img_B = image_path[1].reshape(2,24).T
+    img_B = image_path[1].reshape(2,25).T.reshape(5,5,2)
     if not is_testing:
         img_A = scipy.misc.imresize(img_A, [load_size, load_size])
         h1 = int(np.ceil(np.random.uniform(1e-2, load_size-fine_size)))
