@@ -6,6 +6,9 @@ import tensorflow as tf
 import numpy as np
 from collections import namedtuple
 import csv
+from PIL import Image
+import matplotlib.pyplot as plt
+from matplotlib.cm import rainbow
 
 from module import *
 from utils import *
@@ -231,6 +234,8 @@ class cyclegan(object):
 
         out_var, in_var = (self.testB, self.test_A) if args.which_direction == 'AtoB' else (
             self.testA, self.test_B)
+        colors = rainbow(np.linspace(0,1,24))
+        cs = [colors[i] for i in range(24)]
 
         if status == 0: 
             fake_joints = []
@@ -241,10 +246,20 @@ class cyclegan(object):
                 
                 fake_img = self.sess.run(out_var, feed_dict={in_var: sample_image})
                 fake_joints.append(fake_img.flatten())
-                index.write("<td>%s</td>" % os.path.basename(image_path))
+                fake_img = fake_img.reshape(25,2).T
+                image = Image.open(sample_file)
+                plt.imshow(image)
+                plt.axis('off')
+                plt.scatter(fake_img[0], fake_img[1], color=cs)
+                name = os.path.basename(sample_file)
+                new_path = '{}/joints_{}.png'.format(args.test_dir, name[:-4])
+                plt.savefig(new_path)
+                plt.gcf().clear()
+                index.write("<td>%s</td>" % name)
                 index.write("<td><img src='%s'></td>" % (sample_file if os.path.isabs(sample_file) else (
                     '..' + os.path.sep + sample_file)))
-                index.write("<td>'%s'</td>" % (" ".join(str(elm) for elm in fake_img)))
+                #index.write("<td>'%s'</td>" % (" ".join(str(elm) for elm in fake_img)))
+                index.write("<td><img src='%s'></td>" % new_path)
                 index.write("</tr>")
             index.close()
             file_path = os.path.join(args.test_dir, '{}.csv'.format(args.which_direction))
