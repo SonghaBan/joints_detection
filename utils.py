@@ -44,24 +44,24 @@ def load_test_data(image_path, fine_size=256):
     img = img/127.5 - 1
     return img
 
-def load_train_data(image_path, load_size=286, fine_size=256, is_testing=False):
+def load_train_data(image_path, load_size=256, fine_size=256, is_testing=False):
     img_A = imread(image_path[0])
     img_B = image_path[1].reshape(2,25).T.reshape(5,5,2)
     if not is_testing:
         img_A = scipy.misc.imresize(img_A, [load_size, load_size])
-        h1 = int(np.ceil(np.random.uniform(1e-2, load_size-fine_size)))
-        w1 = int(np.ceil(np.random.uniform(1e-2, load_size-fine_size)))
-        img_A = img_A[h1:h1+fine_size, w1:w1+fine_size]
-
+        #h1 = int(np.ceil(np.random.uniform(1e-2, load_size-fine_size)))
+        #w1 = int(np.ceil(np.random.uniform(1e-2, load_size-fine_size)))
+        #img_A = img_A[h1:h1+fine_size, w1:w1+fine_size]
+        print(img_A.shape)
         if np.random.random() > 0.5:
             img_A = np.fliplr(img_A)
     else:
         img_A = scipy.misc.imresize(img_A, [fine_size, fine_size])
 
     img_A = img_A/127.5 - 1.
-    img_AB = [img_A,img,B]
     # img_AB shape: (fine_size, fine_size, input_c_dim + output_c_dim)
-    return img_AB
+    print(img_A.shape, img_B.shape)
+    return img_A, img_B
 
 # -----------------------------
 
